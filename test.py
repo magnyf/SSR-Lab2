@@ -3,6 +3,7 @@ import matplotlib.pyplot as pl
 from math import log
 import collections
 import tools2
+import copy
 
 data = np.load('lab2_data.npz')['data']
 
@@ -90,7 +91,7 @@ obsloglik = example['obsloglik']
 ## ---------------
 
 def log_inf(x):
-	y = x
+	y = copy.deepcopy(x)
 
 	if not(isinstance(x[0], collections.Iterable)):
 	    # not iterable
@@ -138,10 +139,46 @@ piO = np.append(piO, [0 for x in range(lenRemainingZeros)])
 
 concatMatO = np.array(concatMatO)
 
-logAlpha = forward(obsloglik, log_inf(piO), log_inf(concatMatO))
+#logAlpha = forward(obsloglik, log_inf(piO), log_inf(concatMatO))
 
-print(logAlpha)
-print(example['logalpha'])
+# pl.pcolormesh(np.transpose(logAlpha))
+# pl.show()
 
-pl.pcolormesh(np.transpose(logAlpha))
+
+## ----------------
+## 4.3
+## ---------------
+
+
+## TODO
+
+vloglik = example['vloglik']
+
+## ----------------
+## 4.4
+## ---------------
+
+def backward(log_emlik, log_startprob, log_transmat):
+	N = len(log_emlik)
+	M = len(log_emlik[0])
+
+	logBeta = [[0 for x in range(M)] for y in range(N)]
+
+	for i in range(M):
+		logBeta[N-1][i] = 0
+	for n in range(N-2, -1, -1):
+		for i in range(M):
+			# building the array of the log sum
+			sumArray = []
+			for j in range(M):
+				sumArray += [log_transmat[i][j] + log_emlik[n+1][j] + logBeta[n+1][j]]
+			
+			logBeta[n][i] =  tools2.logsumexp(np.array(sumArray))			
+	return logBeta 
+
+
+
+logBeta = backward(obsloglik, log_inf(piO), log_inf(concatMatO))
+
+pl.pcolormesh(np.transpose(logBeta))
 pl.show()

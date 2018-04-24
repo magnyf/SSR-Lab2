@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as pl
-from math import log
+from math import log, exp
 import collections
 import tools2
 import copy
@@ -180,5 +180,53 @@ def backward(log_emlik, log_startprob, log_transmat):
 
 logBeta = backward(obsloglik, log_inf(piO), log_inf(concatMatO))
 
-pl.pcolormesh(np.transpose(logBeta))
-pl.show()
+# pl.pcolormesh(np.transpose(logBeta))
+# pl.show()
+
+
+## ----------------
+## 5.1
+## ---------------
+##TODO
+
+## ----------------
+## 5.2
+## ---------------
+
+
+def updateMeanAndVar(X, log_gamma, varianceFloor=5.0):
+	
+	N = len(log_gamma)
+	M = len(log_gamma[0])
+	D = len(X[0])
+
+	means =  [[0 for j in range(D)] for i in range(M)]
+	covars = [[0 for j in range(D)] for i in range(M)]
+
+	for j in range(M):
+		sumGammaBottom = 0
+		for n in range(N):
+			sumGammaBottom += exp(log_gamma[n][j])
+		for i in range(D):
+			sumGammaTop = 0
+			for n in range(N):
+				sumGammaTop += exp(log_gamma[n][j])*X[n][i]
+				means[j][i] = sumGammaTop/sumGammaBottom
+	for j in range(M):
+		sumGammaBottom = 0
+		for n in range(N):
+			sumGammaBottom += exp(log_gamma[n][j])
+		for i in range(D):
+			sumGammaTop = 0
+			for n in range(N):
+				xMinusMean = np.subtract(X[n], means[j])
+				covarVector = np.multiply(xMinusMean, xMinusMean)
+				sumGammaTop += exp(log_gamma[n][j])*covarVector[i]
+				covars[j][i] = sumGammaTop/sumGammaBottom
+
+	return means, covars
+
+X = example['lmfcc']
+log_gamma = example['loggamma']
+
+updateMeanAndVar(X, log_gamma, varianceFloor=5.0)

@@ -4,6 +4,8 @@ from math import log, exp
 import collections
 import tools2
 import copy
+from sklearn.mixture import *
+import math
 
 data = np.load('lab2_data.npz')['data']
 
@@ -68,6 +70,16 @@ def concatHMMs(hmmmodels, namelist):
 
 concatMatO = concatHMMs(phoneHMMs, modellist['o'])
 
+
+#def creatwordHMM(hmmmodels, namelist):
+#        wordHMMO =  {}
+#        wordHMMO['name'] = namelist
+#        wordHMMO['startprob'] = phoneHMMs['sil']['startprob'] + phoneHMMs['ow']['startprob'] + phoneHMMs['sil']['startprob']
+#        wordHMMO['transmat']  = concatHMMs(hmmmodels, namelist)
+#        wordHMMO['means'] = phoneHMMs['sil']['means'] + phoneHMMs['ow']['means'] + phoneHMMs['sil']['means']
+#        wordHMMO['covars'] = phoneHMMs['sil']['covars'] + phoneHMMs['ow']['covars'] + phoneHMMs['sil']['covars']
+#        return wordHMMO
+
 # for x in concatMatO:
 # 	print(x)
 
@@ -82,7 +94,18 @@ example = np.load('lab2_example.npz')['example'].item()
 
 # TODO
 
+lmfcc = example['lmfcc']
+#pl.pcolor
+
+
+
+#wordHMMO = creatwordHMM(phoneHMMs, modellist['o'])
+#print( tools2.log_multivariate_normal_density_diag(lmfcc, wordHMMO['means'], wordHMMO['covars']))
+
+
+
 obsloglik = example['obsloglik']
+#print(len(obsloglik[0]))
 
 # pl.pcolormesh(np.transpose(obsloglik))
 # pl.show()
@@ -139,7 +162,7 @@ piO = np.append(piO, [0 for x in range(lenRemainingZeros)])
 
 concatMatO = np.array(concatMatO)
 
-#logAlpha = forward(obsloglik, log_inf(piO), log_inf(concatMatO))
+logAlpha = forward(obsloglik, log_inf(piO), log_inf(concatMatO))
 
 # pl.pcolormesh(np.transpose(logAlpha))
 # pl.show()
@@ -152,7 +175,37 @@ concatMatO = np.array(concatMatO)
 
 ## TODO
 
-vloglik = example['vloglik']
+def viterbi(log_emlik, log_startprob, log_transmat):
+        N = len(log_emlik)
+        M = len(log_emlik[0])
+        V = [[0 for j in range(M)] for n in range(N)]
+        B = [[0 for j in range(M)] for n in range(N)]
+        viterbi_path = [0 for i in range(N)]
+        for j in range(M):
+                V[0][j] = log_startprob[j] + log_emlik[0][j]
+        for n in range(1,N):
+                for j in range(M):
+                        current = V[n-1][0] + log_transmat[0][j]
+                        precedent = current
+                        for i in range(M):
+                                current = max(current, V[n-1][i] + log_transmat[i][j])
+                                if (current != precedent):
+                                        B[n][j] = i
+                                precedent = current
+                        V[n][j] = current + log_emlik[n][j]
+
+        viterbi_path[N-1] = np.argmax(V[N-1])
+        for i in range(N-2, 0, -1):
+                viterbi_path[i] = B[i+1][viterbi_path[i+1]]
+        viterbi_loglik = max(V[N-1])
+        return (viterbi_loglik, np.array(viterbi_path))
+                
+
+vloglik , vpath= example['vloglik']
+loglik, path = viterbi(example['obsloglik'], log_inf(piO), log_inf(concatMatO))
+# print(vloglik == loglik)
+# print(vpath == path)
+
 
 ## ----------------
 ## 4.4
@@ -180,14 +233,30 @@ def backward(log_emlik, log_startprob, log_transmat):
 
 logBeta = backward(obsloglik, log_inf(piO), log_inf(concatMatO))
 
-# pl.pcolormesh(np.transpose(logBeta))
-# pl.show()
+#pl.pcolormesh(np.transpose(logBeta))
+#pl.show()
 
 
 ## ----------------
 ## 5.1
 ## ---------------
-##TODO
+
+def statePosteriors(log_alpha, log_beta):
+        N = len(log_alpha)
+        M = len(log_alpha[0])
+        sum = 0
+        y = [[ 0 for j in range(M)] for i in range(N) ]
+        sum = tools2.logsumexp(log_alpha[N-1])
+        for n in range(N):
+                for j in range(M):
+                           y[n][j] = log_alpha[n][j] + log_beta[n][j] - sum
+        log_gamma = y
+        return log_gamma
+
+logGamma =statePosteriors(example['logalpha'], example['logbeta'])
+# print("Test of statePosteriors")
+# print(logGamma == example['loggamma'])
+
 
 ## ----------------
 ## 5.2

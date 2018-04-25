@@ -203,6 +203,9 @@ def viterbi(log_emlik, log_startprob, log_transmat):
 
 vloglik , vpath= example['vloglik']
 loglik, path = viterbi(example['obsloglik'], log_inf(piO), log_inf(concatMatO))
+#pl.plot(logAlpha)
+#pl.plot(path)
+#pl.show()
 # print(vloglik == loglik)
 # print(vpath == path)
 

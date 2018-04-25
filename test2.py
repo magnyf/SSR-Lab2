@@ -45,11 +45,11 @@ def concatHMMs2(hmmmodels, namelist):
                         
         for j in range(13):
             word['means'][3*i+1][j] = hmmmodels[namelist[i]]['means'][1][j]
-            word['covars'][3*i][j] = hmmmodels[namelist[i]]['covars'][1][j]
+            word['covars'][3*i+1][j] = hmmmodels[namelist[i]]['covars'][1][j]
 
         for j  in range(13):
             word['means'][3*i+2][j] = hmmmodels[namelist[i]]['means'][2][j]
-            word['covars'][3*i][j] = hmmmodels[namelist[i]]['covars'][2][j]
+            word['covars'][3*i+2][j] = hmmmodels[namelist[i]]['covars'][2][j]
 
 
     #compute the tranmat matrice, with your code
@@ -86,4 +86,7 @@ trans = concatHMMs(phoneHMMs, modellist['o'])
 print(trans == wordHMMsO['transmat'])
 
 lmfcc = example['lmfcc']
-#print(tools2.log_multivariate_normal_density_diag(trans, wordHMMsO['means'], wordHMMsO['covars']))
+result =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), np.array(wordHMMsO['means']), np.array(wordHMMsO['covars']))
+
+print(result - example['obsloglik'])
+

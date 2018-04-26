@@ -220,11 +220,11 @@ logAlpha = forward(obsloglik, log_inf(piO), log_inf(concatMatO))
 
 weights = None
 
-def gmmloglik(logAlpha, weights):
+def gmmloglik(logAlpha):
 	return tools2.logsumexp(np.array(logAlpha[-1]))
 
 print('gmmloglik')
-print(gmmloglik(logAlpha, weights) == example['loglik'])
+print(gmmloglik(logAlpha) == example['loglik'])
 
 ## ----------------
 ## 4.3
@@ -360,3 +360,54 @@ X = example['lmfcc']
 log_gamma = example['loggamma']
 
 updateMeanAndVar(X, log_gamma, varianceFloor=5.0)
+
+
+
+
+
+####################################
+## 		Results for report        ##
+####################################
+
+## 4.1
+
+## plot obs log lik for digit seven 
+## 16, 17, 38, and 39
+
+wordHMMs7 = concatHMMs2(phoneHMMs, prondict['7'])
+
+# for i in [16, 17, 38, 39]:
+# 	lmfcc = data[i]['lmfcc']
+
+# 	obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), 
+# 		np.array(wordHMMs7['means']), 
+# 		np.array(wordHMMs7['covars']))
+
+# 	pl.pcolormesh(np.transpose(obsloglik))
+# 	pl.colorbar()
+# 	pl.show()
+
+wordHMMs7 = concatHMMs2(phoneHMMs, prondict['7'])
+keysIndex = ['o','z','1','2','3','4','5','6','7','8','9']
+counter = 0
+# for i in range(44):
+# 	lmfcc = data[i]['lmfcc']
+# 	loglikarray = []
+# 	for indexHMM in range(11):
+# 		wordHMMs = concatHMMs2(phoneHMMs, prondict[keysIndex[indexHMM]])
+		
+# 		obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), 
+#  			np.array(wordHMMs['means']), 
+#  			np.array(wordHMMs['covars']))
+
+# 		pi = wordHMMs['startprob']
+# 		concatMat = wordHMMs['transmat']
+
+# 		logAlpha = forward(obsloglik, log_inf(pi), log_inf(concatMat))
+# 		loglikarray += [gmmloglik(logAlpha)]
+
+# 	print('index of utterance: '+str(i)+', argmax: '+str(keysIndex[np.argmax(loglikarray)])+' expected argmax: '+str(data[i]['digit']))
+# 	if (keysIndex[np.argmax(loglikarray)] == data[i]['digit']):
+# 		counter += 1
+
+counter = 34

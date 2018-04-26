@@ -168,6 +168,14 @@ logAlpha = forward(obsloglik, log_inf(piO), log_inf(concatMatO))
 # pl.show()
 
 
+weights = None
+
+def gmmloglik(logAlpha, weights):
+	return tools2.logsumexp(np.array(logAlpha[-1]))
+
+print('gmmloglik')
+print(gmmloglik(logAlpha, weights)-example['loglik'])
+
 ## ----------------
 ## 4.3
 ## ---------------

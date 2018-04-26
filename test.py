@@ -93,22 +93,72 @@ example = np.load('lab2_example.npz')['example'].item()
 ## ---------------
 
 # TODO
+def concatHMMs2(hmmmodels, namelist):
+    N = len(namelist)
+    word = {}
+    word['name'] = 'o'
+    word['startprob'] = [0 for i in range(3 * N + 4)]
+    word['startprob'][0] = 1.0
+    word['means'] = [[0 for j in range(13)] for i in range(3*N)]
+    word['covars'] = [[0 for j in range(13)] for i in range(3*N)]
+
+    #compute means and covars
+    for i in range(N):
+        for j in range(13):
+            word['means'][3*i][j] = hmmmodels[namelist[i]]['means'][0][j]
+            word['covars'][3*i][j] = hmmmodels[namelist[i]]['covars'][0][j]
+                        
+        for j in range(13):
+            word['means'][3*i+1][j] = hmmmodels[namelist[i]]['means'][1][j]
+            word['covars'][3*i+1][j] = hmmmodels[namelist[i]]['covars'][1][j]
+
+        for j  in range(13):
+            word['means'][3*i+2][j] = hmmmodels[namelist[i]]['means'][2][j]
+            word['covars'][3*i+2][j] = hmmmodels[namelist[i]]['covars'][2][j]
+
+
+    #compute the tranmat matrice, with your code
+    transMat = [phoneHMMs[k]['transmat'] for k in namelist]
+    #for k in namelist:
+    #    tranMat += [phoneHMMs[k]['transmat']]
+    n = 0
+    m = 0
+    for x in transMat:
+        n += len(x)-1
+        m += len(x[0])-1
+    n += 1
+    m += 1
+
+    result = [[0 for y in range(n)] for x in range(m)]
+
+    i0 = 0
+    j0 = 0
+    for x  in transMat:
+        for i in range(len(x)):
+            for j in range(len(x[0])):
+                result[i0+i][j0+j] = x[i][j]
+        i0 += len(x) -1
+        j0 += len(x[0])-1
+    result[-1][-1]  = 1
+    word['transmat'] = result
+    return word
 
 lmfcc = example['lmfcc']
-#pl.pcolor
+
+wordHMMsO = concatHMMs2(phoneHMMs, ['sil', 'ow', 'sil'])
+
+obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), np.array(wordHMMsO['means']), np.array(wordHMMsO['covars']))
+
+#print(result - example['obsloglik'])
 
 
-
-#wordHMMO = creatwordHMM(phoneHMMs, modellist['o'])
-#print( tools2.log_multivariate_normal_density_diag(lmfcc, wordHMMO['means'], wordHMMO['covars']))
-
-
-
-obsloglik = example['obsloglik']
+obsloglikExample = example['obsloglik']
 #print(len(obsloglik[0]))
 
 # pl.pcolormesh(np.transpose(obsloglik))
 # pl.show()
+
+
 ## ----------------
 ## 4.2
 ## ---------------
@@ -174,7 +224,7 @@ def gmmloglik(logAlpha, weights):
 	return tools2.logsumexp(np.array(logAlpha[-1]))
 
 print('gmmloglik')
-print(gmmloglik(logAlpha, weights)-example['loglik'])
+print(gmmloglik(logAlpha, weights) == example['loglik'])
 
 ## ----------------
 ## 4.3

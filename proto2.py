@@ -23,7 +23,54 @@ def concatHMMs(hmmmodels, namelist):
     Example:
        wordHMMs['o'] = concatHMMs(phoneHMMs, ['sil', 'ow', 'sil'])
     """
+    N = len(namelist)
+    word = {}
+    word['name'] = 'o'
+    word['startprob'] = [0 for i in range(3 * N + 4)]
+    word['startprob'][0] = 1.0
+    word['means'] = [[0 for j in range(13)] for i in range(3*N)]
+    word['covars'] = [[0 for j in range(13)] for i in range(3*N)]
 
+    #compute means and covars
+    for i in range(N):
+        for j in range(13):
+            word['means'][3*i][j] = hmmmodels[namelist[i]]['means'][0][j]
+            word['covars'][3*i][j] = hmmmodels[namelist[i]]['covars'][0][j]
+                        
+        for j in range(13):
+            word['means'][3*i+1][j] = hmmmodels[namelist[i]]['means'][1][j]
+            word['covars'][3*i+1][j] = hmmmodels[namelist[i]]['covars'][1][j]
+
+        for j  in range(13):
+            word['means'][3*i+2][j] = hmmmodels[namelist[i]]['means'][2][j]
+            word['covars'][3*i+2][j] = hmmmodels[namelist[i]]['covars'][2][j]
+
+
+    #compute the tranmat matrice, with your code
+    transMat = [hmmmodels[k]['transmat'] for k in namelist]
+    #for k in namelist:
+    #    tranMat += [phoneHMMs[k]['transmat']]
+    n = 0
+    m = 0
+    for x in transMat:
+        n += len(x)-1
+        m += len(x[0])-1
+    n += 1
+    m += 1
+
+    result = [[0 for y in range(n)] for x in range(m)]
+
+    i0 = 0
+    j0 = 0
+    for x  in transMat:
+        for i in range(len(x)):
+            for j in range(len(x[0])):
+                result[i0+i][j0+j] = x[i][j]
+        i0 += len(x) -1
+        j0 += len(x[0])-1
+    result[-1][-1]  = 1
+    word['transmat'] = result
+    return word
 
 def gmmloglik(log_emlik, weights):
     """Log Likelihood for a GMM model based on Multivariate Normal Distribution.
@@ -37,6 +84,7 @@ def gmmloglik(log_emlik, weights):
     Output:
         gmmloglik: scalar, log likelihood of data given the GMM model.
     """
+    
 
 def forward(log_emlik, log_startprob, log_transmat):
     """Forward (alpha) probabilities in log domain.
@@ -49,6 +97,23 @@ def forward(log_emlik, log_startprob, log_transmat):
     Output:
         forward_prob: NxM array of forward log probabilities for each of the M states in the model
     """
+    N = len(log_emlik)
+    M = len(log_emlik[0])
+
+    logAlpha = [[0 for x in range(M)] for y in range(N)]
+
+    for j in range(M):
+        logAlpha[0][j] = log_startprob[j] + log_emlik[0][j]
+
+    for n in range(1, N):
+        for j in range(M):
+            logAlpha[n][j] = log_emlik[n][j]
+            # building the array of the log sum
+            sumArray = []
+            for i in range(M):
+                sumArray += [logAlpha[n-1][i] + log_transmat[i][j]]
+            logAlpha[n][j] +=  tools2.logsumexp(np.array(sumArray))         
+    return logAlpha 
 
 def backward(log_emlik, log_startprob, log_transmat):
     """Backward (beta) probabilities in log domain.

@@ -411,3 +411,30 @@ counter = 0
 # 		counter += 1
 
 counter = 34
+print(34/44)
+
+
+# 4.3
+counter = 0
+for i in range(44):
+	lmfcc = data[i]['lmfcc']
+	loglikvitarray = []
+	for indexHMM in range(11):
+		wordHMMs = concatHMMs2(phoneHMMs, prondict[keysIndex[indexHMM]])
+		
+		obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), 
+ 			np.array(wordHMMs['means']), 
+ 			np.array(wordHMMs['covars']))
+
+		pi = wordHMMs['startprob']
+		concatMat = wordHMMs['transmat']
+
+		viterbiloglik, path = viterbi(obsloglik, log_inf(pi), log_inf(concatMat))
+		loglikvitarray += [viterbiloglik]
+		
+	print('index of utterance: '+str(i)+', argmax: '+str(keysIndex[np.argmax(loglikvitarray)])+' expected argmax: '+str(data[i]['digit']))
+	if (keysIndex[np.argmax(loglikvitarray)] == data[i]['digit']):
+		counter += 1
+
+print(counter)
+print(counter/44)

@@ -1,11 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as pl
-from math import log, exp
+from math import log, exp, fabs
 import collections
 import tools2
 import copy
 from sklearn.mixture import *
-import math
 
 data = np.load('lab2_data.npz')['data']
 
@@ -261,7 +260,7 @@ def viterbi(log_emlik, log_startprob, log_transmat):
 
 vloglik , vpath= example['vloglik']
 loglik, path = viterbi(example['obsloglik'], log_inf(piO), log_inf(concatMatO))
-#pl.plot(logAlpha)
+#pl.pcolormesh(np.transpose(logAlpha))
 #pl.plot(path)
 #pl.show()
 # print(vloglik == loglik)
@@ -353,6 +352,8 @@ def updateMeanAndVar(X, log_gamma, varianceFloor=5.0):
 				covarVector = np.multiply(xMinusMean, xMinusMean)
 				sumGammaTop += exp(log_gamma[n][j])*covarVector[i]
 				covars[j][i] = sumGammaTop/sumGammaBottom
+				if (covars[j][i] < varianceFloor):
+					covars[j][i] = varianceFloor
 
 	return means, covars
 
@@ -415,26 +416,70 @@ print(34/44)
 
 
 # 4.3
-counter = 0
-for i in range(44):
-	lmfcc = data[i]['lmfcc']
-	loglikvitarray = []
-	for indexHMM in range(11):
-		wordHMMs = concatHMMs2(phoneHMMs, prondict[keysIndex[indexHMM]])
+# counter = 0
+# for i in range(44):
+# 	lmfcc = data[i]['lmfcc']
+# 	loglikvitarray = []
+# 	for indexHMM in range(11):
+# 		wordHMMs = concatHMMs2(phoneHMMs, prondict[keysIndex[indexHMM]])
 		
-		obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), 
- 			np.array(wordHMMs['means']), 
- 			np.array(wordHMMs['covars']))
+# 		obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), 
+#  			np.array(wordHMMs['means']), 
+#  			np.array(wordHMMs['covars']))
 
-		pi = wordHMMs['startprob']
-		concatMat = wordHMMs['transmat']
+# 		pi = wordHMMs['startprob']
+# 		concatMat = wordHMMs['transmat']
 
-		viterbiloglik, path = viterbi(obsloglik, log_inf(pi), log_inf(concatMat))
-		loglikvitarray += [viterbiloglik]
-		
-	print('index of utterance: '+str(i)+', argmax: '+str(keysIndex[np.argmax(loglikvitarray)])+' expected argmax: '+str(data[i]['digit']))
-	if (keysIndex[np.argmax(loglikvitarray)] == data[i]['digit']):
-		counter += 1
+# 		viterbiloglik, path = viterbi(obsloglik, log_inf(pi), log_inf(concatMat))
+# 		loglikvitarray += [viterbiloglik]
 
-print(counter)
-print(counter/44)
+# 	print('index of utterance: '+str(i)+', argmax: '+str(keysIndex[np.argmax(loglikvitarray)])+' expected argmax: '+str(data[i]['digit']))
+# 	if (keysIndex[np.argmax(loglikvitarray)] == data[i]['digit']):
+# 		counter += 1
+
+# print(counter)
+# print(counter/44)
+
+
+# 5.2
+# lets compute the loglikelihood for utterance 10 (digit 4)
+
+lmfcc = data[10]['lmfcc']
+ 
+wordHMMs = concatHMMs2(phoneHMMs, prondict['9'])
+
+obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), 
+		np.array(wordHMMs['means']), 
+		np.array(wordHMMs['covars']))
+
+pi = wordHMMs['startprob']
+concatMat = wordHMMs['transmat']
+
+logAlpha = forward(obsloglik, log_inf(pi), log_inf(concatMat))
+loglik4 = gmmloglik(logAlpha)
+print(loglik4)
+for iterations in range(20):
+	oldloglik = loglik4
+
+	# expectaion
+	alpha = forward(obsloglik, log_inf(pi), log_inf(concatMat))
+	beta = backward(obsloglik, log_inf(pi), log_inf(concatMat))
+	gamma = statePosteriors(np.array(alpha), np.array(beta))
+
+	# Maximization
+	wordHMMs['means'], wordHMMs['covars'] = updateMeanAndVar(X, log_gamma, varianceFloor=5.0)
+	
+	obsloglik =tools2.log_multivariate_normal_density_diag(np.array(lmfcc), 
+		np.array(wordHMMs['means']), 
+		np.array(wordHMMs['covars']))
+
+	logAlpha = forward(obsloglik, log_inf(pi), log_inf(concatMat))
+	loglik4 = gmmloglik(logAlpha)
+	print(loglik4)
+
+	if (fabs(loglik4 - oldloglik) <  1):
+		print('breaking at step'+str(iterations))
+		break
+
+
+
